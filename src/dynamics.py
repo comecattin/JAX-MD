@@ -16,6 +16,13 @@ def initialize_system(num_particule, box_size, key):
     return pos, vel
 
 
+def lennard_jones(r, epsilon=1.0, sigma=1.0):
+    """Lennard-Jones potential."""
+    r6 = (sigma / r) ** 6
+    r12 = r6 ** 2
+    return 4.0 * epsilon * (r12 - r6)
+
+
 if __name__ == "__main__":
     num_particule = 10
     box_size = 10.0
