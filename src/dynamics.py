@@ -63,6 +63,38 @@ def step(position, velocity, force, dt, box_size, epsilon=1.0, sigma=1.0):
     return new_position, new_velocity, new_force
 
 
+def dynamics(
+        position,
+        velocity,
+        dt,
+        box_size,
+        epsilon=1.0,
+        sigma=1.0,
+        n_steps=1000
+    ):
+    """Run the dynamics."""
+    force = compute_forces(position, box_size, sigma=sigma, epsilon=epsilon)
+    for step_i in range(n_steps):
+        position, velocity, force = step(
+            position,
+            velocity,
+            force,
+            dt,
+            box_size,
+            sigma=sigma,
+            epsilon=epsilon
+        )
+        if step_i % 100 == 0:
+            kinetic_energy = compute_kinetic_energy(velocity)
+            print(f'Step {step_i} done.\tE_kin = {kinetic_energy}')
+
+
+@jax.jit
+def compute_kinetic_energy(velocity):
+    """Compute the kinetic energy."""
+    return 0.5 * jnp.sum(velocity ** 2)
+
+
 if __name__ == "__main__":
     epsilon = 1.0
     sigma = 1.0
@@ -70,14 +102,4 @@ if __name__ == "__main__":
     box_size = 10.0
     key = random.PRNGKey(0)
     pos, vel = initialize_system(num_particule, box_size, key)
-    print('Initial: ', pos)
-    pos, vel, force = step(
-        pos,
-        vel,
-        jnp.zeros_like(pos),
-        box_size=box_size,
-        dt=0.1,
-        sigma=sigma,
-        epsilon=epsilon
-        )
-    print('Final: ', pos)
+    dynamics(pos, vel, 0.001, box_size, epsilon, sigma)
