@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Molecular dynamics."""
+from functools import partial
+
 import jax
 import jax.numpy as jnp
+import matplotlib.pyplot as plt
 from jax import random
-from functools import partial
+import matplotlib.animation as animation
 
 
 def initialize_system(num_particule, box_size, key):
@@ -43,7 +46,7 @@ def compute_forces_and_potential_energy(pos, box_size, epsilon=1.0, sigma=1.0):
     f = - jax.vmap(grad)(r.reshape(-1))
     f = f.at[::num_particule + 1].set(0)
     f = f.reshape((num_particule, num_particule))[:, :, None] * uij
-    f = jnp.sum(f, axis=0)
+    f = jnp.sum(f, axis=1)
 
     # Potential energy
     potential_energy = jnp.sum(
@@ -81,7 +84,7 @@ def dynamics(
         box_size,
         epsilon=1.0,
         sigma=1.0,
-        n_steps=1000
+        n_steps=5000
     ):
     """Run the dynamics."""
     force, _ = compute_forces_and_potential_energy(
@@ -90,6 +93,11 @@ def dynamics(
         sigma=sigma,
         epsilon=epsilon
     )
+
+    kinetic_energy_list = []
+    potential_energy_list = []
+    total_energy_list = []
+
     for step_i in range(n_steps):
         position, velocity, force = step(
             position,
@@ -108,17 +116,32 @@ def dynamics(
                 sigma=sigma,
                 epsilon=epsilon
             )
+            kinetic_energy_list.append(kinetic_energy)
+            potential_energy_list.append(potential_energy)
+            total_energy_list.append(kinetic_energy + potential_energy)
             print(
                 f'Step {step_i} done.\t',
                 f'E_kin = {kinetic_energy}\t',
                 f'E_pot = {potential_energy}',
                 )
+    return kinetic_energy_list, potential_energy_list, total_energy_list
 
 
 @jax.jit
 def compute_kinetic_energy(velocity):
     """Compute the kinetic energy."""
-    return 0.5 * jnp.sum(velocity ** 2)
+    return jnp.sum(velocity ** 2)
+
+
+def plot_energies(kinetic_energy_list, potential_energy_list, total_energy_list):
+    """Plot the energies."""
+    plt.plot(kinetic_energy_list, label='Kinetic energy')
+    plt.plot(potential_energy_list, label='Potential energy')
+    plt.plot(total_energy_list, label='Total energy')
+    plt.legend()
+    plt.show()
+
+
 
 
 if __name__ == "__main__":
@@ -128,4 +151,9 @@ if __name__ == "__main__":
     box_size = 10.0
     key = random.PRNGKey(0)
     pos, vel = initialize_system(num_particule, box_size, key)
-    dynamics(pos, vel, 0.001, box_size, epsilon, sigma)
+    (
+        kinetic_energy_list,
+        potential_energy_list,
+        total_energy_list
+    ) = dynamics(pos, vel, 0.001, box_size, epsilon, sigma)
+    plot_energies(kinetic_energy_list, potential_energy_list, total_energy_list)
