@@ -24,8 +24,8 @@ def lennard_jones(r, epsilon=1.0, sigma=1.0):
     return 4.0 * epsilon * (r12 - r6)
 
 
-def compute_forces(pos, box_size, epsilon=1.0, sigma=1.0):
-    """Compute the forces."""
+def compute_forces_and_potential_energy(pos, box_size, epsilon=1.0, sigma=1.0):
+    """Compute the forces and the potential energy."""
     num_particule = pos.shape[0]
     # distance matrix in 3D
     rij = pos[:, None, :] - pos[None, :, :]
@@ -36,6 +36,7 @@ def compute_forces(pos, box_size, epsilon=1.0, sigma=1.0):
     r = jnp.where(r < 1e-6, 1e-6, r)
     # Unit vector
     uij = rij / r[:, :, None]
+
     # Compute the forces from the grad
     lennard_jones_fixed = partial(lennard_jones, epsilon=epsilon, sigma=sigma)
     grad = jax.grad(lennard_jones_fixed)
@@ -43,7 +44,17 @@ def compute_forces(pos, box_size, epsilon=1.0, sigma=1.0):
     f = f.at[::num_particule + 1].set(0)
     f = f.reshape((num_particule, num_particule))[:, :, None] * uij
     f = jnp.sum(f, axis=0)
-    return f
+
+    # Potential energy
+    potential_energy = jnp.sum(
+        lennard_jones(
+            r,
+            epsilon=epsilon,
+            sigma=sigma
+            ).reshape(-1).at[::num_particule + 1].set(0)
+    )
+
+    return f, potential_energy
 
 
 def step(position, velocity, force, dt, box_size, epsilon=1.0, sigma=1.0):
@@ -52,7 +63,7 @@ def step(position, velocity, force, dt, box_size, epsilon=1.0, sigma=1.0):
     new_position = position + velocity * dt + 0.5 * force * dt ** 2
     new_position = jnp.mod(new_position, box_size)
     # Compute the new forces
-    new_force = compute_forces(
+    new_force, _ = compute_forces_and_potential_energy(
         new_position,
         box_size,
         sigma=sigma,
@@ -73,7 +84,12 @@ def dynamics(
         n_steps=1000
     ):
     """Run the dynamics."""
-    force = compute_forces(position, box_size, sigma=sigma, epsilon=epsilon)
+    force, _ = compute_forces_and_potential_energy(
+        position,
+        box_size,
+        sigma=sigma,
+        epsilon=epsilon
+    )
     for step_i in range(n_steps):
         position, velocity, force = step(
             position,
@@ -86,7 +102,17 @@ def dynamics(
         )
         if step_i % 100 == 0:
             kinetic_energy = compute_kinetic_energy(velocity)
-            print(f'Step {step_i} done.\tE_kin = {kinetic_energy}')
+            _, potential_energy = compute_forces_and_potential_energy(
+                position,
+                box_size,
+                sigma=sigma,
+                epsilon=epsilon
+            )
+            print(
+                f'Step {step_i} done.\t',
+                f'E_kin = {kinetic_energy}\t',
+                f'E_pot = {potential_energy}',
+                )
 
 
 @jax.jit
