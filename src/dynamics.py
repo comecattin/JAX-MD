@@ -46,10 +46,38 @@ def compute_forces(pos, box_size, epsilon=1.0, sigma=1.0):
     return f
 
 
+def step(position, velocity, force, dt, box_size, epsilon=1.0, sigma=1.0):
+    """Update the system using the velocity Verlet algorithm."""
+    # Update the position
+    new_position = position + velocity * dt + 0.5 * force * dt ** 2
+    new_position = jnp.mod(new_position, box_size)
+    # Compute the new forces
+    new_force = compute_forces(
+        new_position,
+        box_size,
+        sigma=sigma,
+        epsilon=epsilon
+    )
+    # Update the velocity
+    new_velocity = velocity + 0.5 * (force + new_force) * dt
+    return new_position, new_velocity, new_force
+
+
 if __name__ == "__main__":
+    epsilon = 1.0
+    sigma = 1.0
     num_particule = 10
     box_size = 10.0
     key = random.PRNGKey(0)
     pos, vel = initialize_system(num_particule, box_size, key)
-    f = compute_forces(pos, box_size)
-    print(f)
+    print('Initial: ', pos)
+    pos, vel, force = step(
+        pos,
+        vel,
+        jnp.zeros_like(pos),
+        box_size=box_size,
+        dt=0.1,
+        sigma=sigma,
+        epsilon=epsilon
+        )
+    print('Final: ', pos)
