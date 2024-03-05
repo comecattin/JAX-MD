@@ -4,9 +4,9 @@ from functools import partial
 
 import jax
 import jax.numpy as jnp
+import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 from jax import random
-import matplotlib.animation as animation
 
 
 def initialize_system(num_particule, box_size, key):
@@ -84,7 +84,7 @@ def dynamics(
         box_size,
         epsilon=1.0,
         sigma=1.0,
-        n_steps=5000
+        n_steps=1000
     ):
     """Run the dynamics."""
     force, _ = compute_forces_and_potential_energy(
@@ -93,7 +93,7 @@ def dynamics(
         sigma=sigma,
         epsilon=epsilon
     )
-
+    position_list = []
     kinetic_energy_list = []
     potential_energy_list = []
     total_energy_list = []
@@ -108,6 +108,7 @@ def dynamics(
             sigma=sigma,
             epsilon=epsilon
         )
+        position_list.append(position)
         if step_i % 100 == 0:
             kinetic_energy = compute_kinetic_energy(velocity)
             _, potential_energy = compute_forces_and_potential_energy(
@@ -124,7 +125,12 @@ def dynamics(
                 f'E_kin = {kinetic_energy}\t',
                 f'E_pot = {potential_energy}',
                 )
-    return kinetic_energy_list, potential_energy_list, total_energy_list
+    return (
+        jnp.array(position_list),
+        kinetic_energy_list,
+        potential_energy_list,
+        total_energy_list
+    )
 
 
 @jax.jit
@@ -133,7 +139,11 @@ def compute_kinetic_energy(velocity):
     return jnp.sum(velocity ** 2)
 
 
-def plot_energies(kinetic_energy_list, potential_energy_list, total_energy_list):
+def plot_energies(
+        kinetic_energy_list,
+        potential_energy_list,
+        total_energy_list
+    ):
     """Plot the energies."""
     plt.plot(kinetic_energy_list, label='Kinetic energy')
     plt.plot(potential_energy_list, label='Potential energy')
@@ -142,6 +152,25 @@ def plot_energies(kinetic_energy_list, potential_energy_list, total_energy_list)
     plt.show()
 
 
+def animate(pos, box_size):
+    """Animate the system."""
+    fig, ax = plt.subplots()
+    ax.set_xlim(0, box_size)
+    ax.set_ylim(0, box_size)
+    sc = ax.scatter(pos[:, 0], pos[:, 1])
+
+    def update(frame):
+        sc.set_offsets(pos[frame][:, :2])
+        return sc,
+
+    ani = animation.FuncAnimation(
+        fig,
+        update,
+        frames=pos.shape[0],
+        blit=True,
+        interval=1,
+    )
+    plt.show()
 
 
 if __name__ == "__main__":
@@ -152,8 +181,10 @@ if __name__ == "__main__":
     key = random.PRNGKey(0)
     pos, vel = initialize_system(num_particule, box_size, key)
     (
+        pos_list,
         kinetic_energy_list,
         potential_energy_list,
         total_energy_list
-    ) = dynamics(pos, vel, 0.001, box_size, epsilon, sigma)
+    ) = dynamics(pos, vel, 0.001, box_size, epsilon, sigma,n_steps=10000)
     plot_energies(kinetic_energy_list, potential_energy_list, total_energy_list)
+    animate(pos_list, box_size)
