@@ -4,6 +4,13 @@ This is a simple repository to get use to JAX.
 
 JAX-MD provide an efficient Molecular Dynamics (MD) simulation solution using JAX.
 
+Lennard-Jones potential is used as inter-atomic potential:
+$$V_{ij}(r) = 4\epsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - \left( \frac{\sigma}{r} \right)^{6} \right]$$
+
+$r$ being the inter-atomic distance between the atom $i$ and $j$, $\epsilon$ the depth of the potential well and $\sigma$ the "cutoff".
+
+The velocity Verlet integrator is used to propagate the system along the time.
+
 ## Installation
 
 To install JAX-MD use inside the cloned repository:
