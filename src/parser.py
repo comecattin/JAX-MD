@@ -7,6 +7,7 @@ from pathlib import Path
 import jax.numpy as jnp
 import yaml
 from dynamics import initialize_system
+from jax import random
 
 
 class Parser:
@@ -59,10 +60,11 @@ class Parser:
         if 'xyz_file' not in self.arguments:
             try:
                 print('No XYZ file provided, initializing the system.')
+                key = random.PRNGKey(self.arguments['key'])
                 pos, vel = initialize_system(
                     self.arguments['num_particule'],
                     self.arguments['box_size'],
-                    self.arguments['key']
+                    key=key
                 )
             except KeyError:
                 print(
