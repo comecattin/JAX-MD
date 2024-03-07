@@ -11,8 +11,28 @@ from .parser import Parser
 
 
 @jax.jit
-def lennard_jones(r, epsilon=1.0, sigma=1.0):
-    """Lennard-Jones potential."""
+def lennard_jones(
+        r: jnp.ndarray,
+        epsilon: float = 1.0,
+        sigma: float = 1.0,
+    ) -> jnp.ndarray:
+    """Lenard Jones potential.
+
+    Parameters
+    ----------
+    r : jnp.ndarray
+        Distance between the particules.
+        The shape of the array is (n, n) where n is the number of particules.
+    epsilon : float, optional
+        Epsilon parameter for the lennard-jones potential, by default 1.0
+    sigma : float, optional
+        Sigma parameter for the lennar-jones potential, by default 1.0
+
+    Returns
+    -------
+    jnp.ndarray
+        Potential energy between the particules.
+    """
     r6 = (sigma / r) ** 6
     r12 = r6 ** 2
     return 4.0 * epsilon * (r12 - r6)
