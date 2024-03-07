@@ -165,7 +165,9 @@ def animate(pos, box_size):
     plt.show()
     return ani
 
+
 def main():
+    """Run the main function."""
     parser = Parser()
     kwargs = parser.get_dynamics_kwargs()
     (

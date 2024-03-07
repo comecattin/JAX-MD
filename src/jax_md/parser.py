@@ -132,6 +132,7 @@ class Parser:
             'sigma': self.arguments['sigma'],
         }
 
+
 if __name__ == "__main__":
 
     parser = Parser()
