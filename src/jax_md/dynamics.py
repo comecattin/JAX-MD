@@ -157,15 +157,46 @@ def step(
 
 
 def dynamics(
-        position,
-        velocity,
-        dt,
-        box_size,
-        epsilon=1.0,
-        sigma=1.0,
-        n_steps=1000
-    ):
-    """Run the dynamics."""
+        position: jnp.ndarray,
+        velocity: jnp.ndarray,
+        dt: float,
+        box_size: float,
+        epsilon: float = 1.0,
+        sigma: float = 1.0,
+        n_steps: int = 1000
+    ) -> Tuple[jnp.ndarray, list, list, list]:
+    """Run the dynamics of the system.
+
+    Parameters
+    ----------
+    position : jnp.ndarray
+        Position of the particules.
+        The shape of the array is (n, 3) where n is the number of particules.
+    velocity : jnp.ndarray
+        Velocity of the particules.
+        The shape of the array is (n, 3) where n is the number of particules.
+    dt : float
+        Time step.
+    box_size : float
+        Size of the simulation box.
+    epsilon : float, optional
+        Epsilon parameter for the Lennard-Jones potential, by default 1.0
+    sigma : float, optional
+        Sigma parameter for the Lennar-Jones potential, by default 1.0
+    n_steps : int, optional
+        Number of time steps, by default 1000
+
+    Returns
+    -------
+    position_list : jnp.ndarray
+        List of the position of the particules at each time step.
+    kinetic_energy_list : list
+        List of the kinetic energy of the system at each time step.
+    potential_energy_list : list
+        List of the potential energy of the system at each time step.
+    total_energy_list : list
+        List of the total energy of the system at each time step.
+    """
     force, _ = compute_forces_and_potential_energy(
         position,
         box_size,
