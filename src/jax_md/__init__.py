@@ -1,1 +1,3 @@
-from . import dynamics, parser_md
+from . import visual
+from . import parser_md
+from . import dynamics

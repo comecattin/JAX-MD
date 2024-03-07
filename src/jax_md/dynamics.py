@@ -5,8 +5,9 @@ from typing import Tuple
 
 import jax
 import jax.numpy as jnp
-import visual
-from parser_md import Parser
+
+from jax_md import visual
+from jax_md.parser_md import Parser
 
 
 @jax.jit

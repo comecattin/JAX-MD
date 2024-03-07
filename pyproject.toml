@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jax-md"
+version = "0.0.1"
+dependencies = [
+   "numpy",
+   "matplotlib",
+   "jax",
+   "jaxlib",
+   "pyyaml",
+]
+
+[project.scripts]
+jaxdyn = "jax_md.dynamics:main"
