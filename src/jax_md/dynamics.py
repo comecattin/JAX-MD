@@ -6,18 +6,8 @@ import jax
 import jax.numpy as jnp
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
-from jax import random
 
-
-def initialize_system(num_particule, box_size, key):
-    """Initialize the system."""
-    key, subkey_pos, subkey_vel = random.split(key, 3)
-    # Positions within the box
-    pos = random.uniform(subkey_pos, (num_particule, 3)) * box_size
-    # Random velocities
-    vel = random.normal(subkey_vel, (num_particule, 3))
-
-    return pos, vel
+from .parser import Parser
 
 
 @jax.jit
@@ -175,19 +165,32 @@ def animate(pos, box_size):
     plt.show()
     return ani
 
-
-if __name__ == "__main__":
-    epsilon = 1.0
-    sigma = 1.0
-    num_particule = 10
-    box_size = 10.0
-    key = random.PRNGKey(0)
-    pos, vel = initialize_system(num_particule, box_size, key)
+def main():
+    parser = Parser()
+    kwargs = parser.get_dynamics_kwargs()
     (
         pos_list,
         kinetic_energy_list,
         potential_energy_list,
         total_energy_list
-    ) = dynamics(pos, vel, 0.001, box_size, epsilon, sigma, n_steps=10000)
+    ) = dynamics(**kwargs)
     plot_energies(kinetic_energy_list, potential_energy_list, total_energy_list)
-    animate(pos_list, box_size)
+    animate(pos_list, parser.arguments['box_size'])
+
+
+if __name__ == "__main__":
+    # epsilon = 1.0
+    # sigma = 1.0
+    # num_particule = 10
+    # box_size = 10.0
+    # key = random.PRNGKey(0)
+    # pos, vel = initialize_system(num_particule, box_size, key)
+    # (
+    #     pos_list,
+    #     kinetic_energy_list,
+    #     potential_energy_list,
+    #     total_energy_list
+    # ) = dynamics(pos, vel, 0.001, box_size, epsilon, sigma, n_steps=10000)
+    # plot_energies(kinetic_energy_list, potential_energy_list, total_energy_list)
+    # animate(pos_list, box_size)
+    main()

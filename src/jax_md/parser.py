@@ -6,7 +6,6 @@ from pathlib import Path
 
 import jax.numpy as jnp
 import yaml
-from dynamics import initialize_system
 from jax import random
 
 
@@ -61,7 +60,7 @@ class Parser:
             try:
                 print('No XYZ file provided, initializing the system.')
                 key = random.PRNGKey(self.arguments['key'])
-                pos, vel = initialize_system(
+                pos, vel = self.initialize_system(
                     self.arguments['num_particule'],
                     self.arguments['box_size'],
                     key=key
@@ -76,6 +75,16 @@ class Parser:
                 _, _, pos, vel = self.read_xyz_atomic()
             except KeyError:
                 print('The argument xyz_file is missing.')
+
+        return pos, vel
+
+    def initialize_system(self, num_particule, box_size, key):
+        """Initialize the system."""
+        key, subkey_pos, subkey_vel = random.split(key, 3)
+        # Positions within the box
+        pos = random.uniform(subkey_pos, (num_particule, 3)) * box_size
+        # Random velocities
+        vel = random.normal(subkey_vel, (num_particule, 3))
 
         return pos, vel
 
@@ -106,15 +115,23 @@ class Parser:
         vel = jnp.zeros_like(pos)
         return num_particule, comment, pos, vel
 
+    def get_dynamics_kwargs(self):
+        """Get the keyword arguments for the dynamics.
+
+        Returns
+        -------
+        dict: Dictionary of the keyword arguments for the dynamics.
+        """
+        return {
+            'box_size': self.arguments['box_size'],
+            'position': self.pos,
+            'velocity': self.vel,
+            'dt': self.arguments['dt'],
+            'n_steps': self.arguments['n_steps'],
+            'epsilon': self.arguments['epsilon'],
+            'sigma': self.arguments['sigma'],
+        }
 
 if __name__ == "__main__":
-    # file = 'data/xyz/system.xyz'
-    # num_particule, comment, pos = read_xyz_atomic(file)
-    # file = get_input_file()
-    # argument = get_argument(file.param_file)
-    # key = argument['key']
-    # print(key)
+
     parser = Parser()
-    print(parser.arguments)
-    print(parser.pos)
-    print(parser.vel)
