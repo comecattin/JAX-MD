@@ -15,8 +15,20 @@ class Parser:
     def __init__(self):
         self.file = self.get_input_file()
         self.arguments = self.get_argument()
-        self.xyz_file = self.arguments['xyz_file']
+        try:
+            self.xyz_file = self.arguments['xyz_file']
+        except KeyError:
+            self.xyz_file = None
         self.pos, self.vel = self.get_position_velocities()
+
+        try:
+            self.display_energy = self.arguments['display_energy']
+        except KeyError:
+            self.display_energy = False
+        try:
+            self.display_animation = self.arguments['display_animation']
+        except KeyError:
+            self.display_animation = False
 
     def get_input_file(self):
         """Get the input file for the dynamic.

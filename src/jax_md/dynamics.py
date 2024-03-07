@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """Molecular dynamics."""
 from functools import partial
-from parser import Parser
 from typing import Tuple
 
 import jax
 import jax.numpy as jnp
-import matplotlib.animation as animation
-import matplotlib.pyplot as plt
+import visual
+from parser_md import Parser
 
 
 @jax.jit
@@ -260,67 +259,6 @@ def compute_kinetic_energy(velocity: jnp.ndarray) -> float:
     return jnp.sum(velocity ** 2)
 
 
-def plot_energies(
-        kinetic_energy_list: list,
-        potential_energy_list: list,
-        total_energy_list: list
-    ):
-    """Plot the energies of the system.
-
-    Parameters
-    ----------
-    kinetic_energy_list : list
-        Kinetic energy of the system at each time step.
-    potential_energy_list : list
-        Potential energy of the system at each time step.
-    total_energy_list : list
-        Total energy of the system at each time step.
-    """
-    plt.plot(kinetic_energy_list, label='Kinetic energy')
-    plt.plot(potential_energy_list, label='Potential energy')
-    plt.plot(total_energy_list, label='Total energy')
-    plt.legend()
-    plt.show()
-
-
-def animate(
-        pos: jnp.ndarray,
-        box_size: float
-        ) -> animation.FuncAnimation:
-    """Animate the system.
-
-    Parameters
-    ----------
-    pos : jnp.ndarray
-        Position of the particules at each time step.
-    box_size : float
-        Size of the simulation box.
-
-    Returns
-    -------
-    animation.FuncAnimation
-        Animation of the system.
-    """
-    fig, ax = plt.subplots()
-    ax.set_xlim(0, box_size)
-    ax.set_ylim(0, box_size)
-    sc = ax.scatter(pos[:, 0], pos[:, 1])
-
-    def update(frame):
-        sc.set_offsets(pos[frame][:, :2])
-        return sc,
-
-    ani = animation.FuncAnimation(
-        fig,
-        update,
-        frames=pos.shape[0],
-        blit=True,
-        interval=1,
-    )
-    plt.show()
-    return ani
-
-
 def main():
     """Run the main function."""
     parser = Parser()
@@ -331,30 +269,42 @@ def main():
         potential_energy_list,
         total_energy_list
     ) = dynamics(**kwargs)
-    plot_energies(kinetic_energy_list, potential_energy_list, total_energy_list)
-    animate(pos_list, parser.arguments['box_size'])
+
+    if parser.display_energy:
+        visual.plot_energies(
+            kinetic_energy_list,
+            potential_energy_list,
+            total_energy_list
+        )
+
+    if parser.display_animation:
+        visual.animate(pos_list, parser.arguments['box_size'])
 
 
 if __name__ == "__main__":
 
-    from jax import random
+    # from jax import random
 
-    epsilon = 1.0
-    sigma = 1.0
-    num_particule = 10
-    box_size = 10.0
-    key = random.PRNGKey(0)
+    # epsilon = 1.0
+    # sigma = 1.0
+    # num_particule = 10
+    # box_size = 10.0
+    # key = random.PRNGKey(0)
 
-    pos, vel = Parser.initialize_system(num_particule, box_size, key)
+    # pos, vel = Parser.initialize_system(num_particule, box_size, key)
 
-    (
-        pos_list,
-        kinetic_energy_list,
-        potential_energy_list,
-        total_energy_list
-    ) = dynamics(pos, vel, 0.001, box_size, epsilon, sigma, n_steps=10000)
+    # (
+    #     pos_list,
+    #     kinetic_energy_list,
+    #     potential_energy_list,
+    #     total_energy_list
+    # ) = dynamics(pos, vel, 0.001, box_size, epsilon, sigma, n_steps=10000)
 
-    plot_energies(kinetic_energy_list, potential_energy_list, total_energy_list)
-    animate(pos_list, box_size)
+    # plot_energies(
+    #     kinetic_energy_list,
+    #     potential_energy_list,
+    #     total_energy_list
+    # )
+    # animate(pos_list, box_size)
 
     main()
