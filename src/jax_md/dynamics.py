@@ -331,30 +331,38 @@ def main():
         potential_energy_list,
         total_energy_list
     ) = dynamics(**kwargs)
-    plot_energies(kinetic_energy_list, potential_energy_list, total_energy_list)
-    animate(pos_list, parser.arguments['box_size'])
+
+    if parser.display_energy:
+        plot_energies(
+            kinetic_energy_list,
+            potential_energy_list,
+            total_energy_list
+        )
+
+    if parser.display_animation:
+        animate(pos_list, parser.arguments['box_size'])
 
 
 if __name__ == "__main__":
 
-    from jax import random
+    # from jax import random
 
-    epsilon = 1.0
-    sigma = 1.0
-    num_particule = 10
-    box_size = 10.0
-    key = random.PRNGKey(0)
+    # epsilon = 1.0
+    # sigma = 1.0
+    # num_particule = 10
+    # box_size = 10.0
+    # key = random.PRNGKey(0)
 
-    pos, vel = Parser.initialize_system(num_particule, box_size, key)
+    # pos, vel = Parser.initialize_system(num_particule, box_size, key)
 
-    (
-        pos_list,
-        kinetic_energy_list,
-        potential_energy_list,
-        total_energy_list
-    ) = dynamics(pos, vel, 0.001, box_size, epsilon, sigma, n_steps=10000)
+    # (
+    #     pos_list,
+    #     kinetic_energy_list,
+    #     potential_energy_list,
+    #     total_energy_list
+    # ) = dynamics(pos, vel, 0.001, box_size, epsilon, sigma, n_steps=10000)
 
-    plot_energies(kinetic_energy_list, potential_energy_list, total_energy_list)
-    animate(pos_list, box_size)
+    # plot_energies(kinetic_energy_list, potential_energy_list, total_energy_list)
+    # animate(pos_list, box_size)
 
     main()
