@@ -2,7 +2,7 @@
 
 This is a simple repository to get use to JAX.
 
-JAX-MD provide an efficient Molecular Dynamics (MD) simulation solution using JAX.
+JAX-MD provide an efficient Molecular Dynamics (MD) simulation solution using [JAX](https://github.com/google/jax).
 
 Lennard-Jones potential is used as inter-atomic potential:
 $$V_{ij}(r) = 4\epsilon \left[ \left( \frac{\sigma}{r} \right)^{12} - \left( \frac{\sigma}{r} \right)^{6} \right]$$
