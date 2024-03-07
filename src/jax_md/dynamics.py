@@ -9,6 +9,8 @@ import jax.numpy as jnp
 from jax_md import visual
 from jax_md.parser_md import Parser
 
+from . import writer
+
 
 @jax.jit
 def lennard_jones(
@@ -280,6 +282,8 @@ def main():
 
     if parser.display_animation:
         visual.animate(pos_list, parser.arguments['box_size'])
+
+    writer.write_arc(pos_list, atom_type=parser.atom_type)
 
 
 if __name__ == "__main__":
