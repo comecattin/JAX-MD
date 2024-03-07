@@ -102,8 +102,45 @@ def compute_forces_and_potential_energy(
     return f, potential_energy
 
 
-def step(position, velocity, force, dt, box_size, epsilon=1.0, sigma=1.0):
-    """Update the system using the velocity Verlet algorithm."""
+def step(
+        position: jnp.ndarray,
+        velocity: jnp.ndarray,
+        force: jnp.ndarray,
+        dt: float,
+        box_size: float,
+        epsilon: float = 1.0,
+        sigma: float = 1.0
+    ) -> Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]:
+    """Updade the position, velocity and force of the system.
+
+    This function update the position, velocity and force of the system using
+    the velocity Verlet algorithm.
+
+    Parameters
+    ----------
+    position : jnp.ndarray
+        Position of the particules.
+        The shape of the array is (n, 3) where n is the number of particules.
+    velocity : jnp.ndarray
+        Velocity of the particules.
+        The shape of the array is (n, 3) where n is the number of particules.
+    force : jnp.ndarray
+        Forces between the particules.
+        The shape of the array is (n, 3) where n is the number of particules.
+    dt : float
+        Time step.
+    box_size : float
+        Size of the simulation box.
+    epsilon : float, optional
+        Epsilon parameter for the Lennard-Jones potential, by default 1.0
+    sigma : float, optional
+        Sigma parameter for the Lennar-Jones potential, by default 1.0
+
+    Returns
+    -------
+    Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]
+        New position, velocity and force of the system.
+    """
     # Update the position
     new_position = position + velocity * dt + 0.5 * force * dt ** 2
     new_position = jnp.mod(new_position, box_size)
