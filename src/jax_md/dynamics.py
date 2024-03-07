@@ -244,8 +244,19 @@ def dynamics(
 
 
 @jax.jit
-def compute_kinetic_energy(velocity):
-    """Compute the kinetic energy."""
+def compute_kinetic_energy(velocity: jnp.ndarray) -> float:
+    """Compute the kinetic energy of the system.
+
+    Parameters
+    ----------
+    velocity : jnp.ndarray
+        Velocity of the particules.
+
+    Returns
+    -------
+    float
+        Kinetic energy of the system.
+    """
     return jnp.sum(velocity ** 2)
 
 
