@@ -19,7 +19,7 @@ class Parser:
             self.xyz_file = self.arguments['xyz_file']
         except KeyError:
             self.xyz_file = None
-        self.pos, self.vel = self.get_position_velocities()
+        self.atom_type, self.pos, self.vel = self.get_position_velocities()
 
         try:
             self.display_energy = self.arguments['display_energy']
@@ -84,11 +84,11 @@ class Parser:
         else:
             try:
                 print('Reading XYZ file, assuming initial velocity is 0.')
-                _, _, pos, vel = self.read_xyz_atomic()
+                _, atom_type, pos, vel = self.read_xyz_atomic()
             except KeyError:
                 print('The argument xyz_file is missing.')
 
-        return pos, vel
+        return atom_type, pos, vel
 
     @staticmethod
     def initialize_system(num_particule, box_size, key):
@@ -118,15 +118,15 @@ class Parser:
         with open(self.xyz_file) as f:
             lines = f.readlines()
             num_particule = int(lines[0])
-            comment = lines[1]
             pos = jnp.array(
                 [
                     [float(i) for i in line.split()[1:]]
-                    for line in lines[2:]
+                    for line in lines[1:]
                 ]
             )
+            atom_type = [line.split()[0] for line in lines[1:]]
         vel = jnp.zeros_like(pos)
-        return num_particule, comment, pos, vel
+        return num_particule, atom_type, pos, vel
 
     def get_dynamics_kwargs(self):
         """Get the keyword arguments for the dynamics.
