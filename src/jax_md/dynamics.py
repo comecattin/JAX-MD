@@ -1,26 +1,76 @@
 #!/usr/bin/env python3
 """Molecular dynamics."""
 from functools import partial
+from parser import Parser
+from typing import Tuple
 
 import jax
 import jax.numpy as jnp
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 
-from .parser import Parser
-
 
 @jax.jit
-def lennard_jones(r, epsilon=1.0, sigma=1.0):
-    """Lennard-Jones potential."""
+def lennard_jones(
+        r: jnp.ndarray,
+        epsilon: float = 1.0,
+        sigma: float = 1.0,
+    ) -> jnp.ndarray:
+    """Lenard Jones potential.
+
+    Parameters
+    ----------
+    r : jnp.ndarray
+        Distance between the particules.
+        The shape of the array is (n, n) where n is the number of particules.
+    epsilon : float, optional
+        Epsilon parameter for the lennard-jones potential, by default 1.0
+    sigma : float, optional
+        Sigma parameter for the lennar-jones potential, by default 1.0
+
+    Returns
+    -------
+    jnp.ndarray
+        Potential energy between the particules.
+    """
     r6 = (sigma / r) ** 6
     r12 = r6 ** 2
     return 4.0 * epsilon * (r12 - r6)
 
 
 @jax.jit
-def compute_forces_and_potential_energy(pos, box_size, epsilon=1.0, sigma=1.0):
-    """Compute the forces and the potential energy."""
+def compute_forces_and_potential_energy(
+    pos: jnp.ndarray,
+    box_size: float,
+    epsilon: float = 1.0,
+    sigma: float = 1.0
+    ) -> Tuple[jnp.ndarray, float]:
+    """Compute the forces and the potential energy.
+
+    This compute the forces and the potential energy between the particules
+    for the Lennard-Jones potential, using the grad from the jax library.
+
+    Parameters
+    ----------
+    pos : jnp.ndarray
+        Position of the particules.
+        The shape of the array is (n, 3) where n is the number of particules.
+    box_size : float
+        Size of the simulation box.
+    epsilon : float, optional
+        Epsilon parameter for the Lennard-Jones potential, by default 1.0
+    sigma : float, optional
+        Sigma parameter for the Lennar-Jones potential, by default 1.0
+
+    Returns
+    -------
+    f : jnp.ndarray
+        Forces between the particules.
+        The shape of the array is (n, 3) where n is the number of particules.
+    potential_energy : float
+        Potential energy of the system.
+
+    """
     num_particule = pos.shape[0]
     # distance matrix in 3D
     rij = pos[:, None, :] - pos[None, :, :]
@@ -52,8 +102,45 @@ def compute_forces_and_potential_energy(pos, box_size, epsilon=1.0, sigma=1.0):
     return f, potential_energy
 
 
-def step(position, velocity, force, dt, box_size, epsilon=1.0, sigma=1.0):
-    """Update the system using the velocity Verlet algorithm."""
+def step(
+        position: jnp.ndarray,
+        velocity: jnp.ndarray,
+        force: jnp.ndarray,
+        dt: float,
+        box_size: float,
+        epsilon: float = 1.0,
+        sigma: float = 1.0
+    ) -> Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]:
+    """Updade the position, velocity and force of the system.
+
+    This function update the position, velocity and force of the system using
+    the velocity Verlet algorithm.
+
+    Parameters
+    ----------
+    position : jnp.ndarray
+        Position of the particules.
+        The shape of the array is (n, 3) where n is the number of particules.
+    velocity : jnp.ndarray
+        Velocity of the particules.
+        The shape of the array is (n, 3) where n is the number of particules.
+    force : jnp.ndarray
+        Forces between the particules.
+        The shape of the array is (n, 3) where n is the number of particules.
+    dt : float
+        Time step.
+    box_size : float
+        Size of the simulation box.
+    epsilon : float, optional
+        Epsilon parameter for the Lennard-Jones potential, by default 1.0
+    sigma : float, optional
+        Sigma parameter for the Lennar-Jones potential, by default 1.0
+
+    Returns
+    -------
+    Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray]
+        New position, velocity and force of the system.
+    """
     # Update the position
     new_position = position + velocity * dt + 0.5 * force * dt ** 2
     new_position = jnp.mod(new_position, box_size)
@@ -70,15 +157,46 @@ def step(position, velocity, force, dt, box_size, epsilon=1.0, sigma=1.0):
 
 
 def dynamics(
-        position,
-        velocity,
-        dt,
-        box_size,
-        epsilon=1.0,
-        sigma=1.0,
-        n_steps=1000
-    ):
-    """Run the dynamics."""
+        position: jnp.ndarray,
+        velocity: jnp.ndarray,
+        dt: float,
+        box_size: float,
+        epsilon: float = 1.0,
+        sigma: float = 1.0,
+        n_steps: int = 1000
+    ) -> Tuple[jnp.ndarray, list, list, list]:
+    """Run the dynamics of the system.
+
+    Parameters
+    ----------
+    position : jnp.ndarray
+        Position of the particules.
+        The shape of the array is (n, 3) where n is the number of particules.
+    velocity : jnp.ndarray
+        Velocity of the particules.
+        The shape of the array is (n, 3) where n is the number of particules.
+    dt : float
+        Time step.
+    box_size : float
+        Size of the simulation box.
+    epsilon : float, optional
+        Epsilon parameter for the Lennard-Jones potential, by default 1.0
+    sigma : float, optional
+        Sigma parameter for the Lennar-Jones potential, by default 1.0
+    n_steps : int, optional
+        Number of time steps, by default 1000
+
+    Returns
+    -------
+    position_list : jnp.ndarray
+        List of the position of the particules at each time step.
+    kinetic_energy_list : list
+        List of the kinetic energy of the system at each time step.
+    potential_energy_list : list
+        List of the potential energy of the system at each time step.
+    total_energy_list : list
+        List of the total energy of the system at each time step.
+    """
     force, _ = compute_forces_and_potential_energy(
         position,
         box_size,
@@ -126,17 +244,38 @@ def dynamics(
 
 
 @jax.jit
-def compute_kinetic_energy(velocity):
-    """Compute the kinetic energy."""
+def compute_kinetic_energy(velocity: jnp.ndarray) -> float:
+    """Compute the kinetic energy of the system.
+
+    Parameters
+    ----------
+    velocity : jnp.ndarray
+        Velocity of the particules.
+
+    Returns
+    -------
+    float
+        Kinetic energy of the system.
+    """
     return jnp.sum(velocity ** 2)
 
 
 def plot_energies(
-        kinetic_energy_list,
-        potential_energy_list,
-        total_energy_list
+        kinetic_energy_list: list,
+        potential_energy_list: list,
+        total_energy_list: list
     ):
-    """Plot the energies."""
+    """Plot the energies of the system.
+
+    Parameters
+    ----------
+    kinetic_energy_list : list
+        Kinetic energy of the system at each time step.
+    potential_energy_list : list
+        Potential energy of the system at each time step.
+    total_energy_list : list
+        Total energy of the system at each time step.
+    """
     plt.plot(kinetic_energy_list, label='Kinetic energy')
     plt.plot(potential_energy_list, label='Potential energy')
     plt.plot(total_energy_list, label='Total energy')
@@ -144,8 +283,24 @@ def plot_energies(
     plt.show()
 
 
-def animate(pos, box_size):
-    """Animate the system."""
+def animate(
+        pos: jnp.ndarray,
+        box_size: float
+        ) -> animation.FuncAnimation:
+    """Animate the system.
+
+    Parameters
+    ----------
+    pos : jnp.ndarray
+        Position of the particules at each time step.
+    box_size : float
+        Size of the simulation box.
+
+    Returns
+    -------
+    animation.FuncAnimation
+        Animation of the system.
+    """
     fig, ax = plt.subplots()
     ax.set_xlim(0, box_size)
     ax.set_ylim(0, box_size)
@@ -181,18 +336,25 @@ def main():
 
 
 if __name__ == "__main__":
-    # epsilon = 1.0
-    # sigma = 1.0
-    # num_particule = 10
-    # box_size = 10.0
-    # key = random.PRNGKey(0)
-    # pos, vel = initialize_system(num_particule, box_size, key)
-    # (
-    #     pos_list,
-    #     kinetic_energy_list,
-    #     potential_energy_list,
-    #     total_energy_list
-    # ) = dynamics(pos, vel, 0.001, box_size, epsilon, sigma, n_steps=10000)
-    # plot_energies(kinetic_energy_list, potential_energy_list, total_energy_list)
-    # animate(pos_list, box_size)
+
+    from jax import random
+
+    epsilon = 1.0
+    sigma = 1.0
+    num_particule = 10
+    box_size = 10.0
+    key = random.PRNGKey(0)
+
+    pos, vel = Parser.initialize_system(num_particule, box_size, key)
+
+    (
+        pos_list,
+        kinetic_energy_list,
+        potential_energy_list,
+        total_energy_list
+    ) = dynamics(pos, vel, 0.001, box_size, epsilon, sigma, n_steps=10000)
+
+    plot_energies(kinetic_energy_list, potential_energy_list, total_energy_list)
+    animate(pos_list, box_size)
+
     main()

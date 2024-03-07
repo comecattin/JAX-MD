@@ -78,7 +78,8 @@ class Parser:
 
         return pos, vel
 
-    def initialize_system(self, num_particule, box_size, key):
+    @staticmethod
+    def initialize_system(num_particule, box_size, key):
         """Initialize the system."""
         key, subkey_pos, subkey_vel = random.split(key, 3)
         # Positions within the box
