@@ -6,7 +6,7 @@ import jax.numpy as jnp
 def write_arc(
         pos_list: jnp.ndarray,
         atom_type: list[str],
-        output_file: str ='output.arc'
+        output_file: str = 'output.arc'
     ):
     """Write the output of the dynamic in a .arc file.
 
