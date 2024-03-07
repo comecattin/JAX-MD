@@ -19,12 +19,14 @@ def initialize_system(num_particule, box_size, key):
 
     return pos, vel
 
+
 @jax.jit
 def lennard_jones(r, epsilon=1.0, sigma=1.0):
     """Lennard-Jones potential."""
     r6 = (sigma / r) ** 6
     r12 = r6 ** 2
     return 4.0 * epsilon * (r12 - r6)
+
 
 @jax.jit
 def compute_forces_and_potential_energy(pos, box_size, epsilon=1.0, sigma=1.0):
@@ -171,6 +173,7 @@ def animate(pos, box_size):
         interval=1,
     )
     plt.show()
+    return ani
 
 
 if __name__ == "__main__":
