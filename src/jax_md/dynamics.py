@@ -261,11 +261,21 @@ def compute_kinetic_energy(velocity: jnp.ndarray) -> float:
 
 
 def plot_energies(
-        kinetic_energy_list,
-        potential_energy_list,
-        total_energy_list
+        kinetic_energy_list: list,
+        potential_energy_list: list,
+        total_energy_list: list
     ):
-    """Plot the energies."""
+    """Plot the energies of the system.
+
+    Parameters
+    ----------
+    kinetic_energy_list : list
+        Kinetic energy of the system at each time step.
+    potential_energy_list : list
+        Potential energy of the system at each time step.
+    total_energy_list : list
+        Total energy of the system at each time step.
+    """
     plt.plot(kinetic_energy_list, label='Kinetic energy')
     plt.plot(potential_energy_list, label='Potential energy')
     plt.plot(total_energy_list, label='Total energy')
@@ -273,8 +283,24 @@ def plot_energies(
     plt.show()
 
 
-def animate(pos, box_size):
-    """Animate the system."""
+def animate(
+        pos: jnp.ndarray,
+        box_size: float
+        ) -> animation.FuncAnimation:
+    """Animate the system.
+
+    Parameters
+    ----------
+    pos : jnp.ndarray
+        Position of the particules at each time step.
+    box_size : float
+        Size of the simulation box.
+
+    Returns
+    -------
+    animation.FuncAnimation
+        Animation of the system.
+    """
     fig, ax = plt.subplots()
     ax.set_xlim(0, box_size)
     ax.set_ylim(0, box_size)
