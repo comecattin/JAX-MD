@@ -84,7 +84,7 @@ class Parser:
         else:
             try:
                 print('Reading XYZ file, assuming initial velocity is 0.')
-                _, _, pos, vel = self.read_xyz_atomic()
+                _, pos, vel = self.read_xyz_atomic()
             except KeyError:
                 print('The argument xyz_file is missing.')
 
@@ -118,15 +118,14 @@ class Parser:
         with open(self.xyz_file) as f:
             lines = f.readlines()
             num_particule = int(lines[0])
-            comment = lines[1]
             pos = jnp.array(
                 [
                     [float(i) for i in line.split()[1:]]
-                    for line in lines[2:]
+                    for line in lines[1:]
                 ]
             )
         vel = jnp.zeros_like(pos)
-        return num_particule, comment, pos, vel
+        return num_particule, pos, vel
 
     def get_dynamics_kwargs(self):
         """Get the keyword arguments for the dynamics.
