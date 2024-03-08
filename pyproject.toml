@@ -4,7 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "jax-md"
-version = "0.0.1"
+authors = [
+   {name = "Côme Cattin", email = "cattin.come@gmail.com"}
+]
+description = "Molecular dynamics using JAX."
+readme = "README.MD"
+version = "1.0.0"
 dependencies = [
    "numpy",
    "matplotlib",
@@ -13,6 +18,25 @@ dependencies = [
    "pyyaml",
    "pytest",
 ]
+license = {file = "LICENSE"}
+keywords = ["md", "molecular dynamics", "jax", "MD simulation"]
+classifiers = [
+
+  "Development Status :: 3 - Alpha",
+
+  "Intended Audience :: Education",
+  "Topic :: Scientific/Engineering :: Chemistry",
+
+  "Natural Language :: English",
+
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+]
+
+[project.urls]
+Repository = "https://github.com/comecattin/JAX-MD"
+Issues = "https://github.com/comecattin/JAX-MD/issues"
 
 [project.scripts]
 jaxdyn = "jax_md.dynamics:main"
