@@ -165,7 +165,9 @@ def dynamics(
         box_size: float,
         epsilon: float = 1.0,
         sigma: float = 1.0,
-        n_steps: int = 1000
+        n_steps: int = 1000,
+        writing_step: int = 100,
+        printing_step: int = 100,
     ) -> Tuple[jnp.ndarray, list, list, list]:
     """Run the dynamics of the system.
 
@@ -187,6 +189,10 @@ def dynamics(
         Sigma parameter for the Lennar-Jones potential, by default 1.0
     n_steps : int, optional
         Number of time steps, by default 1000
+    writing_step : int, optional
+        Write the system position every writing_step's time step.
+    printing_step : int, optional
+        Print the system energy every printing_step's time step.
 
     Returns
     -------
@@ -220,8 +226,8 @@ def dynamics(
             sigma=sigma,
             epsilon=epsilon
         )
-        position_list.append(position)
-        if step_i % 100 == 0:
+
+        if step_i % printing_step == 0:
             kinetic_energy = compute_kinetic_energy(velocity)
             _, potential_energy = compute_forces_and_potential_energy(
                 position,
@@ -237,6 +243,11 @@ def dynamics(
                 f'E_kin = {kinetic_energy}\t',
                 f'E_pot = {potential_energy}',
                 )
+
+        if step_i % writing_step == 0:
+            print('Saving positions')
+            position_list.append(position)
+
     return (
         jnp.array(position_list),
         kinetic_energy_list,
