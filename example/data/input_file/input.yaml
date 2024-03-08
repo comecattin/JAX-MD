@@ -1,8 +1,10 @@
 xyz_file: data/xyz/system.xyz
 box_size: 10.0
 dt: 0.001
-n_steps: 10000
+n_steps: 100000
 epsilon: 1.
 sigma: 1.
 display_energy: True
 display_animation: True
+printing_step: 10
+writing_step: 100
