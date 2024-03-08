@@ -143,6 +143,8 @@ class Parser:
             'n_steps': self.arguments['n_steps'],
             'epsilon': self.arguments['epsilon'],
             'sigma': self.arguments['sigma'],
+            'printing_step': self.arguments['printing_step'],
+            'writing_step': self.arguments['writing_step'],
         }
 
 
