@@ -45,3 +45,4 @@ JAX-MD uses `.yaml` file as input. This file contains the parameters used during
 - `display_animation` : Display a 2D projection of the simulation.
 - `printing_step` : Print the system energy every nth step.
 - `writing_step` : Write the system coordinates into a trajectory file every nth step.
+- `center` : Center the molecule in the PBC box
