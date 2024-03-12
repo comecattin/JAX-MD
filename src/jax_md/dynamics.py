@@ -104,6 +104,7 @@ def compute_forces_and_potential_energy(
     return f, potential_energy
 
 
+@jax.jit
 def step(
         position: jnp.ndarray,
         velocity: jnp.ndarray,
@@ -168,6 +169,7 @@ def dynamics(
         n_steps: int = 1000,
         writing_step: int = 100,
         printing_step: int = 100,
+        center: bool = True,
     ) -> Tuple[jnp.ndarray, list, list, list]:
     """Run the dynamics of the system.
 
@@ -193,6 +195,8 @@ def dynamics(
         Write the system position every writing_step's time step.
     printing_step : int, optional
         Print the system energy every printing_step's time step.
+    center : bool, optional
+        Center the position of the particules in the box, by default True
 
     Returns
     -------
@@ -246,7 +250,12 @@ def dynamics(
 
         if step_i % writing_step == 0:
             print('Saving positions')
-            position_list.append(position)
+            if center:
+                position_list.append(
+                    position_center_box(position,box_size=box_size)
+                )
+            else:
+                position_list.append(position)
 
     return (
         jnp.array(position_list),
@@ -272,6 +281,28 @@ def compute_kinetic_energy(velocity: jnp.ndarray) -> float:
     """
     return jnp.sum(velocity ** 2)
 
+
+def position_center_box(
+        position: jnp.ndarray,
+        box_size: float
+    ) -> jnp.ndarray:
+    """Center the position of the particules in the box.
+
+    Parameters
+    ----------
+    position : jnp.ndarray
+        Position of the particules.
+        The shape of the array is (n, 3) where n is the number of particules.
+    box_size : float
+        Size of the simulation box.
+
+    Returns
+    -------
+    jnp.ndarray
+        Centered position of the particules.
+    """
+    return position - jnp.floor(position / box_size) * box_size
+        
 
 def main():
     """Run the main function."""

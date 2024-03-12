@@ -135,6 +135,10 @@ class Parser:
         -------
         dict: Dictionary of the keyword arguments for the dynamics.
         """
+        try:
+            center = self.arguments['center']
+        except KeyError:
+            center = False
         return {
             'box_size': self.arguments['box_size'],
             'position': self.pos,
@@ -145,6 +149,7 @@ class Parser:
             'sigma': self.arguments['sigma'],
             'printing_step': self.arguments['printing_step'],
             'writing_step': self.arguments['writing_step'],
+            'center': center,
         }
 
 
