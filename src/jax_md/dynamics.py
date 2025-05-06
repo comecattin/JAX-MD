@@ -204,11 +204,12 @@ def step_BAOAB(
     p = p + f * dt
     x = x + p / mass * dt
     p = a1 * p + a2 * random.normal(key, shape=p.shape)
+    ekin = 0.5 * jnp.sum(p ** 2 / mass)
     x = x + p / mass * dt
     epot, f = compute_forces(x, species, model)
     p = p + f * dt
 
-    return x, p, f, epot
+    return x, p, f, epot, ekin
 
 
 def compute_forces(x, species, model):
