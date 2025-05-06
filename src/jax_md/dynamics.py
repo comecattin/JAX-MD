@@ -11,6 +11,11 @@ from jax_md.parser_md import Parser
 
 from . import writer
 
+import fennol
+from jax import random
+
+key = random.PRNGKey(0)
+
 
 @jax.jit
 def lennard_jones(
@@ -192,16 +197,28 @@ def step_BAOAB(
         dt: float,
         a1: jnp.ndarray,
         a2: jnp.ndarray,
+        species: jnp.ndarray,
+        model: fennol.FENNIX,
     ):
 
     p = p + f * dt
     x = x + p / mass * dt
-    p = a1 * p + a2 * jnp.random.randn(*p.shape)
+    p = a1 * p + a2 * random.normal(key, shape=p.shape)
     x = x + p / mass * dt
-    f, potential_energy = compute_forces_and_potential_energy(x)
+    epot, f = compute_forces(x, species, model)
     p = p + f * dt
 
-    return x, p, f, potential_energy
+    return x, p, f, epot
+
+
+def compute_forces(x, species, model):
+
+    e, f, out = model.energy_and_forces(
+        species=species,
+        coordinates=x,
+        unit='Ha'
+    )
+    return float(e[0]), jnp.array(f)
 
 
 def dynamics(
