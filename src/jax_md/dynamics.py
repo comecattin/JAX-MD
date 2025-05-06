@@ -159,6 +159,51 @@ def step(
     return new_position, new_velocity, new_force
 
 
+def get_a1_a2(
+        gamma: float,
+        dt: float,
+        kT: float,
+        mass: jnp.ndarray,
+    ) -> Tuple[float, float]:
+    """Get the a1 and a2 parameters for the BAOAB algorithm.
+
+    Parameters
+    ----------
+    gamma : float
+        Friction coefficient.
+    dt : float
+        Time step.
+
+    Returns
+    -------
+    Tuple[float, float]
+        a1 and a2 parameters for the BAOAB algorithm.
+    """
+    a1 = jnp.exp(-gamma * dt)
+    a2 = jnp.sqrt((1 - a1 ** 2) * kT * mass)
+    return a1, a2
+
+
+def step_BAOAB(
+        x: jnp.ndarray,
+        p: jnp.ndarray,
+        mass: jnp.ndarray,
+        f: jnp.ndarray,
+        dt: float,
+        a1: jnp.ndarray,
+        a2: jnp.ndarray,
+    ):
+
+    p = p + f * dt
+    x = x + p / mass * dt
+    p = a1 * p + a2 * jnp.random.randn(*p.shape)
+    x = x + p / mass * dt
+    f, potential_energy = compute_forces_and_potential_energy(x)
+    p = p + f * dt
+
+    return x, p, f, potential_energy
+
+
 def dynamics(
         position: jnp.ndarray,
         velocity: jnp.ndarray,
