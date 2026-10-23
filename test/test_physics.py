@@ -3,7 +3,6 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
-from jax.experimental import enable_x64
 
 from jax_md.dynamics import (
     compute_forces_and_potential_energy,
@@ -14,8 +13,12 @@ from jax_md.dynamics import (
 
 @pytest.fixture
 def double_precision():
-    with enable_x64():
+    previous = jax.config.x64_enabled
+    jax.config.update('jax_enable_x64', True)
+    try:
         yield
+    finally:
+        jax.config.update('jax_enable_x64', previous)
 
 
 def energy(position, velocity, box):
