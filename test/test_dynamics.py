@@ -1,6 +1,10 @@
 import jax.numpy as np
 import jax_md.dynamics
-from jax_md.dynamics import lennard_jones
+from jax_md.dynamics import (
+    compute_forces_and_potential_energy,
+    compute_kinetic_energy,
+    lennard_jones,
+)
 
 
 def test_lennard_jones():
@@ -30,10 +34,34 @@ def test_energy_conservation():
         dt=0.001,
         n_steps=1000
     )
-    assert np.allclose(
-        np.array(kinetic_energy_list) + np.array(potential_energy_list),
-        np.array(total_energy_list)
+    initial_energy = compute_kinetic_energy(velocity) + (
+        compute_forces_and_potential_energy(position, 10.0)[1]
     )
+    energies = np.array(total_energy_list)
+    assert np.all(np.isfinite(energies))
+    assert np.max(np.abs(energies - initial_energy)) < 1e-3
+    assert np.max(np.array(kinetic_energy_list)) > 0.1
+
+
+def test_kinetic_energy_unit_masses():
+    velocity = np.array([[1.0, 2.0, 2.0], [0.0, 0.0, 1.0]])
+    assert np.allclose(compute_kinetic_energy(velocity), 5.0)
+
+
+def test_pair_energy_and_forces():
+    position = np.array([[0.0, 0.0, 0.0], [1.5, 0.0, 0.0]])
+    force, energy = compute_forces_and_potential_energy(position, 10.0)
+    assert np.allclose(energy, lennard_jones(1.5))
+    assert np.allclose(force[0], -force[1])
+    delta = 1e-3
+    plus = position.at[0, 0].add(delta)
+    minus = position.at[0, 0].add(-delta)
+    derivative = (
+        compute_forces_and_potential_energy(plus, 10.0)[1]
+        - compute_forces_and_potential_energy(minus, 10.0)[1]
+    ) / (2 * delta)
+    assert np.allclose(force[0, 0], -derivative, rtol=1e-3)
+
 
 
 if __name__ == "__main__":
