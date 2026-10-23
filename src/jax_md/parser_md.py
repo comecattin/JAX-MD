@@ -77,6 +77,7 @@ class Parser:
                     self.arguments['box_size'],
                     key=key
                 )
+                atom_type = ['X'] * pos.shape[0]
             except KeyError:
                 print(
                     'The argument key or box_size or num_particules is missing.'
@@ -118,13 +119,22 @@ class Parser:
         with open(self.xyz_file) as f:
             lines = f.readlines()
             num_particule = int(lines[0])
+            # Accept standard XYZ (including its comment line), as well as
+            # the comment-free format used by the bundled example.
+            coordinates = lines[1:]
+            if len(coordinates) != num_particule:
+                coordinates = lines[2:2 + num_particule]
+            if len(coordinates) != num_particule:
+                raise ValueError('XYZ atom count does not match coordinates.')
             pos = jnp.array(
                 [
                     [float(i) for i in line.split()[1:]]
-                    for line in lines[1:]
+                    for line in coordinates
                 ]
             )
-            atom_type = [line.split()[0] for line in lines[1:]]
+            if pos.shape != (num_particule, 3):
+                raise ValueError('XYZ atoms must have three coordinates.')
+            atom_type = [line.split()[0] for line in coordinates]
         vel = jnp.zeros_like(pos)
         return num_particule, atom_type, pos, vel
 

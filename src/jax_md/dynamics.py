@@ -93,7 +93,7 @@ def compute_forces_and_potential_energy(
     f = jnp.sum(f, axis=1)
 
     # Potential energy
-    potential_energy = jnp.sum(
+    potential_energy = 0.5 * jnp.sum(
         lennard_jones(
             r,
             epsilon=epsilon,
@@ -279,7 +279,7 @@ def compute_kinetic_energy(velocity: jnp.ndarray) -> float:
     float
         Kinetic energy of the system.
     """
-    return jnp.sum(velocity ** 2)
+    return 0.5 * jnp.sum(velocity ** 2)
 
 
 def position_center_box(

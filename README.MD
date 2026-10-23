@@ -46,3 +46,12 @@ JAX-MD uses `.yaml` file as input. This file contains the parameters used during
 - `printing_step` : Print the system energy every nth step.
 - `writing_step` : Write the system coordinates into a trajectory file every nth step.
 - `center` : Center the molecule in the PBC box
+
+Particles have unit mass. Reported energies use the conventional definitions
+of kinetic energy (one half the sum of squared velocities) and potential
+energy (each interacting pair counted once).
+
+XYZ input accepts a standard comment line after the atom count, including an
+empty comment, or the comment-free format used by the bundled example.
+Randomly initialized particles use the placeholder atom label `X` in the
+output trajectory.
