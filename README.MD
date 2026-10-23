@@ -55,3 +55,40 @@ XYZ input accepts a standard comment line after the atom count, including an
 empty comment, or the comment-free format used by the bundled example.
 Randomly initialized particles use the placeholder atom label `X` in the
 output trajectory.
+
+## Generated initial conditions
+
+When `xyz_file` is omitted, particles now start on a simple cubic lattice by
+default, rather than at random positions. Set `initialization: random` to
+request uniformly random positions; these can contain close particle pairs.
+Both modes use `X` as the atom label. For example:
+
+```yaml
+key: 42
+num_particule: 27
+box_size: 6.0
+initialization: lattice
+temperature: 0.7
+dt: 0.001
+n_steps: 1000
+epsilon: 1.0
+sigma: 1.0
+printing_step: 10
+writing_step: 100
+```
+
+`temperature` defaults to 1.0 in reduced units, with particle mass and
+Boltzmann constant both equal to one. Gaussian velocities have their
+center-of-mass velocity removed and are rescaled so that
+`sum(velocity**2) / (3*N - 3) == temperature`. This sets the initial
+temperature; no thermostat is applied during dynamics. A zero temperature
+gives zero velocities. A single particle requires zero temperature when net
+momentum is removed. XYZ input continues to start with zero velocities.
+
+Choose the density and timestep carefully: lattice spacing is
+`box_size / ceil(N**(1/3))`, which can still be too small at high density.
+The seed determines reproducible generated velocities and random positions.
+
+The physics tests use double precision to check momentum and energy
+conservation, periodic wrapping, and second-order timestep convergence.
+They do not change the precision used by the command-line simulation.

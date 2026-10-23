@@ -2,6 +2,7 @@
 """Parsing the input file for the dynamic."""
 
 import argparse
+import math
 from pathlib import Path
 
 import jax.numpy as jnp
@@ -75,7 +76,9 @@ class Parser:
                 pos, vel = self.initialize_system(
                     self.arguments['num_particule'],
                     self.arguments['box_size'],
-                    key=key
+                    key=key,
+                    initialization=self.arguments.get('initialization', 'lattice'),
+                    temperature=self.arguments.get('temperature', 1.0),
                 )
                 atom_type = ['X'] * pos.shape[0]
             except KeyError:
@@ -92,13 +95,41 @@ class Parser:
         return atom_type, pos, vel
 
     @staticmethod
-    def initialize_system(num_particule, box_size, key):
-        """Initialize the system."""
+    def initialize_system(num_particule, box_size, key,
+                          initialization='lattice', temperature=1.0):
+        """Initialize unit-mass particles in reduced units (Boltzmann k=1).
+
+        Lattice positions avoid accidental close pairs. Gaussian velocities
+        have zero center-of-mass momentum and are scaled to the requested
+        temperature using 3N-3 degrees of freedom.
+        """
+        if not isinstance(num_particule, int) or num_particule < 1:
+            raise ValueError('num_particule must be a positive integer.')
+        if not math.isfinite(box_size) or box_size <= 0:
+            raise ValueError('box_size must be positive and finite.')
+        if not math.isfinite(temperature) or temperature < 0:
+            raise ValueError('temperature must be nonnegative and finite.')
+        if num_particule == 1 and temperature > 0:
+            raise ValueError('Positive temperature requires at least two particles '
+                             'when center-of-mass momentum is removed.')
         key, subkey_pos, subkey_vel = random.split(key, 3)
-        # Positions within the box
-        pos = random.uniform(subkey_pos, (num_particule, 3)) * box_size
-        # Random velocities
+        if initialization == 'lattice':
+            side = math.ceil(num_particule ** (1 / 3))
+            grid = jnp.stack(jnp.meshgrid(
+                *([jnp.arange(side)] * 3), indexing='ij'
+            ), axis=-1).reshape(-1, 3)
+            pos = (grid[:num_particule] + 0.5) * (box_size / side)
+        elif initialization == 'random':
+            pos = random.uniform(subkey_pos, (num_particule, 3)) * box_size
+        else:
+            raise ValueError('initialization must be lattice or random.')
+        if temperature == 0:
+            return pos, jnp.zeros_like(pos)
         vel = random.normal(subkey_vel, (num_particule, 3))
+        vel = vel - jnp.mean(vel, axis=0)
+        vel = vel * jnp.sqrt(
+            (3 * num_particule - 3) * temperature / jnp.sum(vel ** 2)
+        )
 
         return pos, vel
 
