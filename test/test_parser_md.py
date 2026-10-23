@@ -46,7 +46,10 @@ def test_initialization_temperature_and_reproducibility(mode):
     pos_again, vel_again = Parser.initialize_system(**kwargs)
     assert jnp.array_equal(pos, pos_again)
     assert jnp.array_equal(vel, vel_again)
-    assert jnp.allclose(jnp.sum(vel, axis=0), 0., atol=1e-6)
+    # Centering, rescaling, and summing velocities introduce roundoff.
+    # Bound it relative to the summed magnitudes and the actual dtype.
+    tolerance = 4 * jnp.finfo(vel.dtype).eps * jnp.sum(jnp.abs(vel), axis=0)
+    assert jnp.all(jnp.abs(jnp.sum(vel, axis=0)) <= tolerance)
     assert jnp.allclose(jnp.sum(vel ** 2) / (3 * 10 - 3), 0.7)
     assert jnp.all((pos >= 0) & (pos < 6.))
     if mode == 'lattice':
