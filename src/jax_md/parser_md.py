@@ -3,11 +3,14 @@
 
 import argparse
 import math
+from dataclasses import asdict
 from pathlib import Path
 
 import jax.numpy as jnp
 import yaml
 from jax import random
+
+from .config import SimulationConfig, finite_number, positive_integer, validate_dynamics
 
 
 class Parser:
@@ -16,20 +19,11 @@ class Parser:
     def __init__(self):
         self.file = self.get_input_file()
         self.arguments = self.get_argument()
-        try:
-            self.xyz_file = self.arguments['xyz_file']
-        except KeyError:
-            self.xyz_file = None
+        self.xyz_file = self.arguments['xyz_file']
         self.atom_type, self.pos, self.vel = self.get_position_velocities()
-
-        try:
-            self.display_energy = self.arguments['display_energy']
-        except KeyError:
-            self.display_energy = False
-        try:
-            self.display_animation = self.arguments['display_animation']
-        except KeyError:
-            self.display_animation = False
+        self.display_energy = self.arguments['display_energy']
+        self.display_animation = self.arguments['display_animation']
+        validate_dynamics(**self.get_dynamics_kwargs())
 
     def get_input_file(self):
         """Get the input file for the dynamic.
@@ -53,46 +47,26 @@ class Parser:
         -------
             dict: Dictionary of the arguments.
         """
-        with open(self.file) as stream:
-            try:
-                return yaml.safe_load(stream)
-            except yaml.YAMLError as exc:
-                print(exc)
+        try:
+            with open(self.file) as stream:
+                values = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            raise ValueError(f'Invalid YAML in {self.file}: {exc}') from exc
+        self.config = SimulationConfig.from_mapping(values, self.file.parent)
+        return asdict(self.config)
 
     def get_position_velocities(self):
-        """Get the position and velocities of the system.
-
-        Returns
-        -------
-        pos : jnp.array
-            Position of the particules in the system.
-        vel : jnp.array
-            Velocity of the particules in the system.
-        """
-        if 'xyz_file' not in self.arguments:
-            try:
-                print('No XYZ file provided, initializing the system.')
-                key = random.PRNGKey(self.arguments['key'])
-                pos, vel = self.initialize_system(
-                    self.arguments['num_particule'],
-                    self.arguments['box_size'],
-                    key=key,
-                    initialization=self.arguments.get('initialization', 'lattice'),
-                    temperature=self.arguments.get('temperature', 1.0),
-                )
-                atom_type = ['X'] * pos.shape[0]
-            except KeyError:
-                print(
-                    'The argument key or box_size or num_particules is missing.'
-                )
-        else:
-            try:
-                print('Reading XYZ file, assuming initial velocity is 0.')
-                _, atom_type, pos, vel = self.read_xyz_atomic()
-            except KeyError:
-                print('The argument xyz_file is missing.')
-
-        return atom_type, pos, vel
+        """Load XYZ coordinates or generate the configured initial state."""
+        if self.xyz_file is not None:
+            _, atom_type, pos, vel = self.read_xyz_atomic()
+            return atom_type, pos, vel
+        pos, vel = self.initialize_system(
+            self.arguments['num_particule'], self.arguments['box_size'],
+            key=random.PRNGKey(self.arguments['key']),
+            initialization=self.arguments['initialization'],
+            temperature=self.arguments['temperature'],
+        )
+        return ['X'] * pos.shape[0], pos, vel
 
     @staticmethod
     def initialize_system(num_particule, box_size, key,
@@ -103,12 +77,9 @@ class Parser:
         have zero center-of-mass momentum and are scaled to the requested
         temperature using 3N-3 degrees of freedom.
         """
-        if not isinstance(num_particule, int) or num_particule < 1:
-            raise ValueError('num_particule must be a positive integer.')
-        if not math.isfinite(box_size) or box_size <= 0:
-            raise ValueError('box_size must be positive and finite.')
-        if not math.isfinite(temperature) or temperature < 0:
-            raise ValueError('temperature must be nonnegative and finite.')
+        positive_integer('num_particule', num_particule)
+        finite_number('box_size', box_size)
+        finite_number('temperature', temperature, allow_zero=True)
         if num_particule == 1 and temperature > 0:
             raise ValueError('Positive temperature requires at least two particles '
                              'when center-of-mass momentum is removed.')
@@ -149,22 +120,41 @@ class Parser:
         """
         with open(self.xyz_file) as f:
             lines = f.readlines()
-            num_particule = int(lines[0])
-            # Accept standard XYZ (including its comment line), as well as
-            # the comment-free format used by the bundled example.
+            if not lines:
+                raise ValueError('XYZ file is empty.')
+            try:
+                num_particule = int(lines[0])
+            except ValueError as exc:
+                raise ValueError('XYZ atom count must be a positive integer.') from exc
+            positive_integer('XYZ atom count', num_particule)
+            # A coordinate-shaped first line selects the legacy comment-free
+            # format; otherwise the first line after the count is a comment.
             coordinates = lines[1:]
-            if len(coordinates) != num_particule:
-                coordinates = lines[2:2 + num_particule]
+            first = coordinates[0].split() if coordinates else []
+            first_is_atom = len(first) == 4
+            if first_is_atom:
+                try:
+                    [float(value) for value in first[1:]]
+                except ValueError:
+                    first_is_atom = False
+            if not first_is_atom:
+                coordinates = coordinates[1:]
+            while coordinates and not coordinates[-1].strip():
+                coordinates.pop()
             if len(coordinates) != num_particule:
                 raise ValueError('XYZ atom count does not match coordinates.')
-            pos = jnp.array(
-                [
-                    [float(i) for i in line.split()[1:]]
-                    for line in coordinates
-                ]
-            )
-            if pos.shape != (num_particule, 3):
+            rows = [line.split() for line in coordinates]
+            if any(len(row) != 4 for row in rows):
                 raise ValueError('XYZ atoms must have three coordinates.')
+            try:
+                values = [[float(value) for value in row[1:]] for row in rows]
+            except ValueError as exc:
+                raise ValueError('XYZ coordinates must be numeric.') from exc
+            limit = float(jnp.finfo(jnp.asarray(0.).dtype).max)
+            if any(not math.isfinite(value) or abs(value) > limit
+                   for row in values for value in row):
+                raise ValueError('XYZ coordinates must be finite in simulation precision.')
+            pos = jnp.array(values)
             atom_type = [line.split()[0] for line in coordinates]
         vel = jnp.zeros_like(pos)
         return num_particule, atom_type, pos, vel

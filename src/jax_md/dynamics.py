@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Molecular dynamics."""
+import sys
 from functools import partial
 from typing import Tuple
 
@@ -10,6 +11,7 @@ from jax_md import visual
 from jax_md.parser_md import Parser
 
 from . import writer
+from .config import validate_dynamics
 
 
 @jax.jit
@@ -209,6 +211,11 @@ def dynamics(
     total_energy_list : list
         List of the total energy of the system at each time step.
     """
+    validate_dynamics(
+        position, velocity, dt=dt, box_size=box_size, epsilon=epsilon,
+        sigma=sigma, n_steps=n_steps, writing_step=writing_step,
+        printing_step=printing_step, center=center,
+    )
     force, _ = compute_forces_and_potential_energy(
         position,
         box_size,
@@ -306,7 +313,11 @@ def position_center_box(
 
 def main():
     """Run the main function."""
-    parser = Parser()
+    try:
+        parser = Parser()
+    except (ValueError, OSError) as exc:
+        print(f'jaxdyn: error: {exc}', file=sys.stderr)
+        raise SystemExit(2) from None
     kwargs = parser.get_dynamics_kwargs()
     (
         pos_list,
