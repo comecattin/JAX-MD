@@ -13,7 +13,7 @@ def test_read_xyz(tmp_path, monkeypatch, comment):
     xyz = tmp_path / 'system.xyz'
     xyz.write_text('2\n' + comment + 'He 0 1 2\nNe 3 4 5\n')
     config = tmp_path / 'input.yaml'
-    config.write_text(yaml.safe_dump({'xyz_file': str(xyz)}))
+    config.write_text(yaml.safe_dump({'xyz_file': str(xyz), 'box_size': 10.0}))
     monkeypatch.setattr(sys, 'argv', ['jaxdyn', str(config)])
     parser = Parser()
     assert parser.atom_type == ['He', 'Ne']
