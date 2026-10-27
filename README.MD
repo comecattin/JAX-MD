@@ -35,10 +35,10 @@ JAX-MD uses `.yaml` file as input. This file contains the parameters used during
 
 - `xyz_file` : Path to the `.xyz` file containing the system.
 - `key` : Key random generator, used if `xyz_file` is not given to initialize the system's position as random.
-- `num_particules` : Number of particules in the randomly initialized system.
+- `num_particule` : Number of particules in the randomly initialized system.
 - `box_size` : Size of the simulation box.
 - `dt` : Time step.
-- `n_step` : Number of time step, *ie* length of the simulation.
+- `n_steps` : Number of time step, *ie* length of the simulation.
 - `epsilon` : $\epsilon$ parameter in the Lennard-Jones potential.
 - `sigma` : $\sigma$ parameter in the Lennard-Jones potential.
 - `display_energy` : Display energies of the system as a function of the time.
@@ -92,3 +92,50 @@ The seed determines reproducible generated velocities and random positions.
 The physics tests use double precision to check momentum and energy
 conservation, periodic wrapping, and second-order timestep convergence.
 They do not change the precision used by the command-line simulation.
+
+## Input validation and defaults
+
+Configuration is validated before reading coordinates or generating particles.
+`box_size` is required. Supply either `xyz_file` or both `key` and
+`num_particule`; omitting `xyz_file` or setting it to `null` selects generated
+initial conditions. Unknown fields are rejected, including misspelled names.
+
+Relative `xyz_file` paths are resolved from the directory containing the YAML
+file, independent of the working directory. Absolute paths are also accepted.
+For example, from the repository root:
+
+```bash
+jaxdyn example/data/input_file/input.yaml
+```
+
+The output is still written to `output.arc` in the working directory.
+
+Omitted optional fields use these defaults:
+
+| Field | Default | Constraint |
+| --- | --- | --- |
+| `dt` | `0.001` | Positive, finite number |
+| `n_steps` | `1000` | Positive integer |
+| `epsilon` | `1.0` | Nonnegative, finite number |
+| `sigma` | `1.0` | Positive, finite number |
+| `printing_step` | `100` | Positive integer |
+| `writing_step` | `100` | Positive integer |
+| `center` | `false` | Boolean |
+| `display_energy` | `false` | Boolean |
+| `display_animation` | `false` | Boolean |
+| `initialization` | `lattice` | `lattice` or `random` |
+| `temperature` | `1.0` | Nonnegative, finite number |
+
+`box_size` must be positive and finite, `num_particule` a positive integer,
+and `key` an integer from 0 through 4294967295. Booleans are not accepted as
+numbers. YAML booleans must be unquoted (`false`, rather than `"false"`).
+Initialization options are validated even when XYZ input is selected; XYZ
+particles continue to start with zero velocity.
+
+XYZ input must have a positive atom count, matching coordinate rows, and three
+finite numeric coordinates per atom. The public `dynamics()` function also
+validates parameters and matching, nonempty `(N, 3)` position/velocity arrays
+before integration. Zero-step runs and zero output intervals are rejected.
+Invalid CLI input exits with status 2 and a field-specific error on stderr.
+Particle overlap checks and detection of numerical failures during integration
+are tracked separately in issue #16.
