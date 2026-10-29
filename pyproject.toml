@@ -9,7 +9,7 @@ authors = [
 ]
 description = "Molecular dynamics using JAX."
 readme = "README.MD"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
    "numpy",
    "matplotlib",
