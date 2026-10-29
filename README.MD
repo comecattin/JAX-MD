@@ -137,5 +137,23 @@ finite numeric coordinates per atom. The public `dynamics()` function also
 validates parameters and matching, nonempty `(N, 3)` position/velocity arrays
 before integration. Zero-step runs and zero output intervals are rejected.
 Invalid CLI input exits with status 2 and a field-specific error on stderr.
-Particle overlap checks and detection of numerical failures during integration
-are tracked separately in issue #16.
+
+Initial coincident particles are rejected, including coincidences across
+periodic boundaries; diagnostics identify the zero-based particle indices.
+Self-interactions are excluded using safe distances before evaluating inverse
+powers. Distinct-particle distances are not clamped: the Lennard-Jones
+potential remains singular, with no artificial soft core or regularization.
+
+The simulation checks positions, velocities, forces, kinetic/potential energy,
+and total energy initially and after **every integration step**, independently
+of printing and writing intervals. A nonfinite result stops the run before
+the invalid frame is saved, with the completed step number, physical time,
+`dt`, `box_size`, `epsilon`, and `sigma` in the error. The CLI exits with status
+2. Very close pairs can overflow (especially in default float32 precision);
+the diagnostic suggests checking separations, velocities, and timestep.
+There is no universal safe minimum separation: finite close-pair interactions
+remain unchanged, and passing these checks does not guarantee an accurate
+timestep. Checking every step synchronizes with the device and evaluates
+potential energy each step, adding runtime cost. Output is still written only
+after a successful run; streaming and partial output preservation are tracked
+in issue #17.
