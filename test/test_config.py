@@ -134,3 +134,23 @@ def test_cli_valid_run(tmp_path):
     )
     assert result.returncode == 0, result.stderr
     assert len((tmp_path / 'output.arc').read_text().splitlines()) == 6
+
+
+@pytest.mark.parametrize('distance, message', [
+    ('10', 'particles 0 and 1 overlap'),
+    ('0.000001', 'Nonfinite simulation state at step 0'),
+])
+def test_cli_numerical_errors(tmp_path, distance, message):
+    (tmp_path / 'atoms.xyz').write_text(
+        f'2\ncomment\nHe 0 0 0\nHe {distance} 0 0\n')
+    config = tmp_path / 'run.yaml'
+    config.write_text('box_size: 10\nxyz_file: atoms.xyz\nn_steps: 2\n')
+    result = subprocess.run(
+        [sys.executable, '-m', 'jax_md.dynamics', str(config)],
+        cwd=tmp_path, capture_output=True, text=True,
+        env={**os.environ, 'MPLBACKEND': 'Agg'}, check=False,
+    )
+    assert result.returncode == 2
+    assert message in result.stderr
+    assert 'Traceback' not in result.stderr
+    assert not (tmp_path / 'output.arc').exists()
