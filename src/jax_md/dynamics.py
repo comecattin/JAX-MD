@@ -81,8 +81,11 @@ def compute_forces_and_potential_energy(
     # PBC
     rij = rij - jnp.round(rij / box_size) * box_size
     # Distance matrix
-    r = jnp.sqrt(jnp.sum(rij ** 2, axis=-1))
-    r = jnp.where(r < 1e-6, 1e-6, r)
+    # Exclude self-pairs before inverse powers: tiny dummy distances overflow
+    # in float32 even when their energies and forces are masked afterwards.
+    self_pair = jnp.eye(num_particule, dtype=bool)
+    r = jnp.sqrt(jnp.where(self_pair, sigma ** 2,
+                           jnp.sum(rij ** 2, axis=-1)))
     # Unit vector
     uij = rij / r[:, :, None]
 
@@ -216,7 +219,7 @@ def dynamics(
         sigma=sigma, n_steps=n_steps, writing_step=writing_step,
         printing_step=printing_step, center=center,
     )
-    force, _ = compute_forces_and_potential_energy(
+    force, potential_energy = compute_forces_and_potential_energy(
         position,
         box_size,
         sigma=sigma,
@@ -226,6 +229,25 @@ def dynamics(
     kinetic_energy_list = []
     potential_energy_list = []
     total_energy_list = []
+
+    def check_state(step_number, potential):
+        kinetic = compute_kinetic_energy(velocity)
+        valid = (jnp.all(jnp.isfinite(position))
+                 & jnp.all(jnp.isfinite(velocity))
+                 & jnp.all(jnp.isfinite(force))
+                 & jnp.isfinite(kinetic) & jnp.isfinite(potential)
+                 & jnp.isfinite(kinetic + potential))
+        if not bool(valid):
+            raise ValueError(
+                f'Nonfinite simulation state at step {step_number}, '
+                f'time {step_number * dt:g}; dt={dt}, box_size={box_size}, '
+                f'epsilon={epsilon}, sigma={sigma}. '
+                'Check for dangerously close pairs, excessive velocities, '
+                'or a timestep too large for the interaction strength.'
+            )
+        return kinetic
+
+    check_state(0, potential_energy)
 
     for step_i in range(n_steps):
         position, velocity, force = step(
@@ -238,14 +260,11 @@ def dynamics(
             epsilon=epsilon
         )
 
+        _, potential_energy = compute_forces_and_potential_energy(
+            position, box_size, sigma=sigma, epsilon=epsilon
+        )
+        kinetic_energy = check_state(step_i + 1, potential_energy)
         if step_i % printing_step == 0:
-            kinetic_energy = compute_kinetic_energy(velocity)
-            _, potential_energy = compute_forces_and_potential_energy(
-                position,
-                box_size,
-                sigma=sigma,
-                epsilon=epsilon
-            )
             kinetic_energy_list.append(kinetic_energy)
             potential_energy_list.append(potential_energy)
             total_energy_list.append(kinetic_energy + potential_energy)
@@ -315,16 +334,17 @@ def main():
     """Run the main function."""
     try:
         parser = Parser()
+        kwargs = parser.get_dynamics_kwargs()
+        (
+            pos_list,
+            kinetic_energy_list,
+            potential_energy_list,
+            total_energy_list
+        ) = dynamics(**kwargs)
+
     except (ValueError, OSError) as exc:
         print(f'jaxdyn: error: {exc}', file=sys.stderr)
         raise SystemExit(2) from None
-    kwargs = parser.get_dynamics_kwargs()
-    (
-        pos_list,
-        kinetic_energy_list,
-        potential_energy_list,
-        total_energy_list
-    ) = dynamics(**kwargs)
 
     if parser.display_energy:
         visual.plot_energies(

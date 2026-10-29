@@ -5,6 +5,7 @@ from numbers import Integral, Real
 from pathlib import Path
 
 import jax.numpy as jnp
+import numpy as np
 
 
 def positive_integer(name, value):
@@ -45,6 +46,20 @@ def validate_dynamics(position, velocity, **parameters):
             raise ValueError(f'{name} must contain only finite coordinates.')
     if jnp.shape(position) != jnp.shape(velocity):
         raise ValueError('position and velocity must have matching shapes.')
+    # Check minimum-image coincidences on the host before invoking kernels.
+    # Iterate over particles to avoid allocating another dense pair matrix.
+    coordinates = np.asarray(jnp.asarray(position), dtype=float)
+    box_size = parameters['box_size']
+    for i in range(len(coordinates) - 1):
+        displacement = coordinates[i + 1:] - coordinates[i]
+        displacement -= np.round(displacement / box_size) * box_size
+        overlaps = np.flatnonzero(np.all(displacement == 0, axis=1))
+        if overlaps.size:
+            j = i + 1 + int(overlaps[0])
+            raise ValueError(
+                f'Initial particles {i} and {j} overlap under periodic '
+                f'boundaries (box_size={box_size}).'
+            )
 
 
 @dataclass(frozen=True)
